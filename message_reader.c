@@ -1,14 +1,13 @@
 #include "message_slot.h" 
-#include <fcntl.h>      // open
-#include <unistd.h>     // exit
-#include <sys/ioctl.h>  // ioctl
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
     char *file_path;
-    int channel_id;
-    int message_slot_fd;
+    int channel_id, message_slot_fd, return_val;
     
     if (argc != 3) {
         perror("Number of cmd args is not 2");
@@ -20,18 +19,38 @@ int main(int argc, char *argv[]) {
 
     // Opening message slot device file
     message_slot_fd = open("/dev/"DEVICE_NAME, O_RDWR);
+    if(message_slot_fd < 0) {
+        perror("Can't open device file: %s", DEVICE_NAME);
+        exit(1);
+    }
 
     // Setting the channel id
-    ioctl(message_slot_fd);
+    return_val = ioctl(message_slot_fd);
+    if (return_val != 0) {
+        perror("Can't set the channel id");
+        exit(1);
+    }
 
     // Reading a message from the slot to buffer
-    read(message_slot_fd);
+    return_val = read(message_slot_fd);
+    if (return_val != 0) {
+        perror("Can't read a message from message slot");
+        exit(1);
+    }
 
     // Closing the device
-    release(message_slot_fd);
+    return_val = release(message_slot_fd);
+    if (return_val != 0) {
+        perror("Can't close device file: %s", DEVICE_NAME);
+        exit(1);
+    }
 
     // Printing the message to standard output
-    write();
+    return_val = write();
+    if (return_val != 0) {
+        perror("Can't print the message to standard output");
+        exit(1);
+    }
 
     exit(0);
 }
