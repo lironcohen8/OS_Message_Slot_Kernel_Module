@@ -45,9 +45,15 @@ static ssize_t device_write(struct file*       file,
                             loff_t*            offset) {
 }
 
-static long device_ioctl( struct   file* file,
-                          unsigned int   ioctl_command_id,
-                          unsigned long  ioctl_param) {
+static long device_ioctl( struct file*   file,
+                          unsigned int   ioctl_command,
+                          unsigned int   channel_id) {
+    if (MSG_SLOT_CHANNEL == ioctl_command && channel_id != 0) {
+        // TODO here setting the channel id
+    }
+    else {
+        return -EINVAL;
+    }
 }
 
 static int device_release(struct inode* inode,
