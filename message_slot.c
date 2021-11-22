@@ -11,13 +11,6 @@
 #include <linux/ioctl.h>
 #include "message_slot.h"
 
-// #define SUCCESS 0
-#define MAJOR_NUM (240)
-#define DEVICE_NAME "message_slot"
-
-// #define BUF_LEN 80
-// #define DEVICE_FILE_NAME "simple_char_dev"
-
 struct file_operations Fops =
 {
     .owner	  = THIS_MODULE, 
