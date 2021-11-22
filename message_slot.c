@@ -22,28 +22,67 @@ struct file_operations Fops =
     // TODO check about release and flush
 };
 
-static int device_open(struct inode* inode,
-                    struct file* file) {
+struct message_channel {
+    unsigned int id = 0;
+    char *msg = NULL; // TODO change to bytes?
+    unsigned int message_length;
+};
+
+struct message_slot {
+    unsigned int slot_minor;
+    struct message_channel channels[];
+};
+
+static struct message_slot slots[];
+static int slots_cntr = 0;
+static int channels_cntr = 0;
+
+int does_slot_exist(unsigned int minor) {
+    for (int i = 0; i < slots_cntr; i++) {
+        if (slots[i].slot_minor == minor) {
+            return i;
+        }
+    }
+    return -1;
 }
 
-static ssize_t device_read(struct file* file,
-                           char __user* buffer,
-                           size_t       length,
-                           loff_t*      offset) {
+struct message_channel get_channel (unsigned int id) {
+    for (int i = 0; i < channels_cntr; i++) {
+        if (channels[i].id == id) {
+            return channels[i];
+        }
+    }
+    return NULL;
+}
 
+static int device_open(struct inode* inode, struct file* file) {
+    unsigned int minor = inode.iminor();
+    if (does_slot_exist(minor) == -1) { // Check if we created a data structure for the file
+        
+        struct message_slot slot = kmalloc(sizeof(struct message_slot), GFP_KERNEL);
+        slot.slot_minor = minor;
+        slot.channels = kmalloc(sizeof(struct message_channel), GFP_KERNEL); // TODO fix 
+        
+        slots[slots_cntr++] = slot;
+    }
+    return 0;
+}
+
+static ssize_t device_read(struct file* file, char __user* buffer) {
     // No channel has been set on fd
-    if (file->private_data == NULL) {
+    int id = file->private_data;
+    if (id == NULL) {
         return -EINVAL;
     }
+    struct message_channel channel = get_channel(id);
+    buffer = channel.msg; // TODO change to put / get user?
+    return channel.message_length;
 }
 
-static ssize_t device_write(struct file*       file,
-                            const char __user* buffer,
-                            size_t             length,
-                            loff_t*            offset) {
-
+static ssize_t device_write(struct file* file, const char __user* buffer, size_t length) {
     // No channel has been set on fd
-    if (file->private_data == NULL) {
+    int id = file->private_data;
+    if (id == NULL) {
         return -EINVAL;
     }
 
@@ -52,12 +91,17 @@ static ssize_t device_write(struct file*       file,
         return -EMSGSIZE;
     }
 
-    // TODO add writing to data structure
+    struct message_channel channel = get_channel(id);
+    kfree(channel.msg);
+    channel.msg = kmalloc(length, GFP_KERNEL);
+    if (channel.msg == NULL) {
+        return -ENOMEM;
+    }
+    channel.msg = buffer;
+    return length;
 }
 
-static long device_ioctl( struct file*   file,
-                          unsigned int   ioctl_command,
-                          unsigned int   channel_id) {
+static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned int channel_id) {
 
     if (ioctl_command == MSG_SLOT_CHANNEL && channel_id != 0) {
         // Setting desired channel id to current file
@@ -70,12 +114,11 @@ static long device_ioctl( struct file*   file,
     }
 }
 
-static int device_release(struct inode* inode,
-                          struct file* file) {
+static int device_release(struct inode* inode, struct file* file) {
 }
 
 static int init_module(void) {
-    // init dev struct
+    // TODO init dev struct
     // memset(&device_info, 0, sizeof(struct chardev_info));
 
     // Register driver with desired major number
@@ -84,7 +127,7 @@ static int init_module(void) {
     // Negative values signify an error
     if (major < 0)
     {
-        printk(KERN_ERR "%s registraion failed for %d\n", DEVICE_FILE_NAME, major);
+        printk(KERN_ERR "%s registraion failed for %d\n", DEVICE_NAME, major);
         return major;
     }
 
