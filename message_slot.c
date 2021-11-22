@@ -30,21 +30,42 @@ static ssize_t device_read(struct file* file,
                            char __user* buffer,
                            size_t       length,
                            loff_t*      offset) {
+
+    // No channel has been set on fd
+    if (file->private_data == NULL) {
+        return -EINVAL;
+    }
 }
 
 static ssize_t device_write(struct file*       file,
                             const char __user* buffer,
                             size_t             length,
                             loff_t*            offset) {
+
+    // No channel has been set on fd
+    if (file->private_data == NULL) {
+        return -EINVAL;
+    }
+
+    // Checking message length
+    if (length == 0 || length > 128) {
+        return -EMSGSIZE;
+    }
+
+    // TODO add writing to data structure
 }
 
 static long device_ioctl( struct file*   file,
                           unsigned int   ioctl_command,
                           unsigned int   channel_id) {
-    if (MSG_SLOT_CHANNEL == ioctl_command && channel_id != 0) {
-        // TODO here setting the channel id
+
+    if (ioctl_command == MSG_SLOT_CHANNEL && channel_id != 0) {
+        // Setting desired channel id to current file
+        file->private_data = (void*) channel_id;
     }
-    else {
+
+    // command was not MSG_SLOT_CHANNEL or channel_id was 0
+    else {    
         return -EINVAL;
     }
 }
