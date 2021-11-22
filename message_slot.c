@@ -30,37 +30,31 @@ struct file_operations Fops =
 };
 
 static int device_open(struct inode* inode,
-                    struct file* file)
-{
+                    struct file* file) {
 }
 
 static ssize_t device_read(struct file* file,
                            char __user* buffer,
                            size_t       length,
-                           loff_t*      offset)
-{
+                           loff_t*      offset) {
 }
 
 static ssize_t device_write(struct file*       file,
                             const char __user* buffer,
                             size_t             length,
-                            loff_t*            offset)
-{
+                            loff_t*            offset) {
 }
 
 static long device_ioctl( struct   file* file,
                           unsigned int   ioctl_command_id,
-                          unsigned long  ioctl_param )
-{
+                          unsigned long  ioctl_param) {
 }
 
 static int device_release(struct inode* inode,
-                          struct file* file)
-{
+                          struct file* file) {
 }
 
-static int init_module(void) 
-{
+static int init_module(void) {
     // init dev struct
     // memset(&device_info, 0, sizeof(struct chardev_info));
 
@@ -78,8 +72,7 @@ static int init_module(void)
     return 0;
 }
 
-static void exit_module(void)
-{
+static void exit_module(void) {
     // TODO free memory using kfree()
     unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
     printk("Unloading Module\n");
