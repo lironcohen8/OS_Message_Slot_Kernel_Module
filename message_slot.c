@@ -75,7 +75,12 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
         return -EINVAL;
     }
     struct message_channel channel = get_channel(id);
-    buffer = channel.msg; // TODO change to put / get user?
+
+    // Writing from channel to buffer
+    for(int i = 0; i < length && i < MAX_MESSAGE_LENGTH; i++)
+    {
+        put_user(channel.msg[i], &buffer[i]);
+    }
     return channel.message_length;
 }
 
@@ -97,7 +102,13 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     if (channel.msg == NULL) {
         return -ENOMEM;
     }
-    channel.msg = buffer; // TODO change to put / get user?
+
+    // Writing from buffer to channel
+    for(int i = 0; i < length && i < MAX_MESSAGE_LENGTH; i++)
+    {
+        get_user(channel.msg[i], &buffer[i]);
+    }
+
     return length;
 }
 
