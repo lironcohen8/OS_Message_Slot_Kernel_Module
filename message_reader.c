@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     // Opening message slot device file
     message_slot_fd = open("/dev/"DEVICE_NAME, O_RDWR);
     if(message_slot_fd < 0) {
-        perror("Can't open device file: %s", DEVICE_NAME);
+        perror("Can't open device file");
         exit(1);
     }
 
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     // Closing the device
     return_val = release(message_slot_fd);
     if (return_val != 0) {
-        perror("Can't close device file: %s", DEVICE_NAME);
+        perror("Can't close device file");
         exit(1);
     }
 
