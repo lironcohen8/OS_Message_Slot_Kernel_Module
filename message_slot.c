@@ -69,24 +69,37 @@ static int device_open(struct inode* inode, struct file* file) {
 }
 
 static ssize_t device_read(struct file* file, char __user* buffer, size_t length, loff_t* offset) {
-    // No channel has been set on fd
     int id = file->private_data;
+    int return_val = 0;
+
+    // No channel has been set on fd
     if (id == NULL) {
         return -EINVAL;
     }
+    
     struct message_channel channel = get_channel(id);
+
+    // No message exists on the channel
+    if (channel.msg == NULL) {
+        return -EWOULDBLOCK;
+    }
 
     // Writing from channel to buffer
     for(int i = 0; i < length && i < MAX_MESSAGE_LENGTH; i++)
     {
-        put_user(channel.msg[i], &buffer[i]);
+        return_val = put_user(channel.msg[i], &buffer[i]);
+        if (return_val != 0) {
+            return -EFAULT;
+        }
     }
     return channel.message_length;
 }
 
 static ssize_t device_write(struct file* file, const char __user* buffer, size_t length, loff_t* offset) {
-    // No channel has been set on fd
     int id = file->private_data;
+    int return_val = 0;
+
+    // No channel has been set on fd
     if (id == NULL) {
         return -EINVAL;
     }
@@ -106,7 +119,10 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     // Writing from buffer to channel
     for(int i = 0; i < length && i < MAX_MESSAGE_LENGTH; i++)
     {
-        get_user(channel.msg[i], &buffer[i]);
+        return_val = get_user(channel.msg[i], &buffer[i]);
+        if (return_val != 0) {
+            return -EFAULT;
+        }
     }
 
     return length;
