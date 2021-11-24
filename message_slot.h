@@ -6,6 +6,7 @@
 // The major device number
 #define MAJOR_NUM 240
 #define DEVICE_NAME "message_slot"
+#define MAX_MESSAGE_LENGTH 128
 
 // TODO understand if needed
 // Sets the file descriptor's channel id

@@ -46,7 +46,7 @@ int does_slot_exist(unsigned int minor) {
     return -1;
 }
 
-struct message_channel get_channel (unsigned int id) {
+struct message_channel get_channel(unsigned int id) {
     for (int i = 0; i < channels_cntr; i++) {
         if (channels[i].id == id) {
             return channels[i];
@@ -68,7 +68,7 @@ static int device_open(struct inode* inode, struct file* file) {
     return 0;
 }
 
-static ssize_t device_read(struct file* file, char __user* buffer) {
+static ssize_t device_read(struct file* file, char __user* buffer, size_t length, loff_t* offset) {
     // No channel has been set on fd
     int id = file->private_data;
     if (id == NULL) {
@@ -79,7 +79,7 @@ static ssize_t device_read(struct file* file, char __user* buffer) {
     return channel.message_length;
 }
 
-static ssize_t device_write(struct file* file, const char __user* buffer, size_t length) {
+static ssize_t device_write(struct file* file, const char __user* buffer, size_t length, loff_t* offset) {
     // No channel has been set on fd
     int id = file->private_data;
     if (id == NULL) {
@@ -97,7 +97,7 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     if (channel.msg == NULL) {
         return -ENOMEM;
     }
-    channel.msg = buffer;
+    channel.msg = buffer; // TODO change to put / get user?
     return length;
 }
 
@@ -115,6 +115,7 @@ static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned
 }
 
 static int device_release(struct inode* inode, struct file* file) {
+    return 0;
 }
 
 static int init_module(void) {

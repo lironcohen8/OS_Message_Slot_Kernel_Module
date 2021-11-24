@@ -6,47 +6,47 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-    char *file_path;
     int channel_id, message_slot_fd, return_val;
+    char buffer[MAX_MESSAGE_LENGTH];
     
     if (argc != 3) {
         perror("Number of cmd args is not 2");
 	    exit(1);
     }
 
-    file_path = argv[1];
-    channel_id = (int)argv[2];
+    char *file_path = argv[1];
+    sscanf(argv[2],"%d",&channel_id);
 
     // Opening message slot device file
-    message_slot_fd = open("/dev/"DEVICE_NAME, O_RDWR);
+    message_slot_fd = open(file_path, O_RDWR);
     if(message_slot_fd < 0) {
         perror("Can't open device file");
         exit(1);
     }
 
     // Setting the channel id
-    return_val = ioctl(message_slot_fd);
+    return_val = ioctl(message_slot_fd, MSG_SLOT_CHANNEL, channel_id);
     if (return_val != 0) {
         perror("Can't set the channel id");
         exit(1);
     }
 
     // Reading a message from the slot to buffer
-    return_val = read(message_slot_fd);
+    return_val = read(message_slot_fd, buffer, MAX_MESSAGE_LENGTH);
     if (return_val != 0) {
         perror("Can't read a message from message slot");
         exit(1);
     }
 
     // Closing the device
-    return_val = release(message_slot_fd);
+    return_val = close(message_slot_fd);
     if (return_val != 0) {
         perror("Can't close device file");
         exit(1);
     }
 
     // Printing the message to standard output
-    return_val = write();
+    return_val = write(1, buffer, MAX_MESSAGE_LENGTH);
     if (return_val != 0) {
         perror("Can't print the message to standard output");
         exit(1);
