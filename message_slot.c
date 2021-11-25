@@ -33,18 +33,9 @@ struct message_slot {
     struct message_channel channels[];
 };
 
-static struct message_slot slots[];
+static struct message_slot *slots[];
 static int slots_cntr = 0;
 static int channels_cntr = 0;
-
-int does_slot_exist(unsigned int minor) {
-    for (int i = 0; i < slots_cntr; i++) {
-        if (slots[i].slot_minor == minor) {
-            return i;
-        }
-    }
-    return -1;
-}
 
 struct message_channel get_channel(unsigned int id) {
     for (int i = 0; i < channels_cntr; i++) {
@@ -57,13 +48,12 @@ struct message_channel get_channel(unsigned int id) {
 
 static int device_open(struct inode* inode, struct file* file) {
     unsigned int minor = inode.iminor();
-    if (does_slot_exist(minor) == -1) { // Check if we created a data structure for the file
-        
+    if (slots[minor] == NULL) { // Check if we created a data structure for the file
         struct message_slot slot = kmalloc(sizeof(struct message_slot), GFP_KERNEL);
         slot.slot_minor = minor;
         slot.channels = kmalloc(sizeof(struct message_channel), GFP_KERNEL); // TODO fix 
         
-        slots[slots_cntr++] = slot;
+        slots[slots_cntr++] = &slot;
     }
     return 0;
 }
@@ -76,7 +66,7 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
     if (id == NULL) {
         return -EINVAL;
     }
-    
+
     struct message_channel channel = get_channel(id);
 
     // No message exists on the channel
