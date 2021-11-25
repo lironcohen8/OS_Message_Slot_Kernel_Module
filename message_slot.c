@@ -9,7 +9,6 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 #include <linux/string.h>
-#include <linux/ioctl.h>
 
 #include "message_slot.h"
 
@@ -127,7 +126,7 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     return length;
 }
 
-static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned int channel_id) {
+static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned long channel_id) {
     struct message_channel_node* channel;
     if (ioctl_command == MSG_SLOT_CHANNEL && channel_id != 0) {
         // Setting desired channel id to current file

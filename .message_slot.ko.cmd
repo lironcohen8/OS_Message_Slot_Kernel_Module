@@ -1,0 +1,1 @@
+cmd_/media/sf_OS_HW3/message_slot.ko := ld -r -m elf_x86_64  -z max-page-size=0x200000 -T ./scripts/module-common.lds  --build-id  -o /media/sf_OS_HW3/message_slot.ko /media/sf_OS_HW3/message_slot.o /media/sf_OS_HW3/message_slot.mod.o ;  true
