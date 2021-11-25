@@ -4,11 +4,13 @@
 #define MODULE
 
 #include <linux/kernel.h>
+#include <linux/slab.h>
 #include <linux/module.h>
 #include <linux/fs.h>
-// #include <linux/uaccess.h>
+#include <linux/uaccess.h>
 #include <linux/string.h>
 #include <linux/ioctl.h>
+
 #include "message_slot.h"
 
 struct message_channel_node {
@@ -24,22 +26,22 @@ struct message_slot {
     struct message_channel_node channel_node_tail;
 };
 
-static struct message_slot *slots[];
+static struct message_slot **slots;
 struct message_slot *cur_slot;
 
 struct message_channel_node get_channel(unsigned int id) {
-    struct message_channel_node temp = *(cur_slot).channel_node_head;
+    struct message_channel_node *temp = &(cur_slot->channel_node_head);
     while (temp != NULL) {
-        if (temp.id == id) {
-            return temp;
+        if (temp->id == id) {
+            return *temp;
         }
-        temp = *(temp.next);
+        temp = temp->next;
     }
     return NULL;
 }
 
 static int device_open(struct inode* inode, struct file* file) {
-    unsigned int minor = inode.iminor();
+    unsigned int minor = iminor(inode);
     if (slots[minor] == NULL) { // Check if we created a data structure for the file
         struct message_slot slot = kmalloc(sizeof(struct message_slot), GFP_KERNEL);
         memset(&slot, 0, sizeof(struct message_slot));
@@ -52,6 +54,7 @@ static int device_open(struct inode* inode, struct file* file) {
 }
 
 static ssize_t device_read(struct file* file, char __user* buffer, size_t length, loff_t* offset) {
+    struct message_channel_node channel;
     int id = file->private_data;
     int return_val = 0;
 
@@ -60,7 +63,7 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
         return -EINVAL;
     }
 
-    struct message_channel_node channel = get_channel(id);
+    channel = get_channel(id);
 
     // Channel does not exist
     if (channel == NULL) {
@@ -84,6 +87,7 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
 }
 
 static ssize_t device_write(struct file* file, const char __user* buffer, size_t length, loff_t* offset) {
+    struct message_channel_node channel;
     int id = file->private_data;
     int return_val = 0;
 
@@ -97,7 +101,7 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
         return -EMSGSIZE;
     }
 
-    struct message_channel_node channel = get_channel(id);
+    channel = get_channel(id);
 
     // Channel does not exist
     if (channel == NULL) {
@@ -124,23 +128,23 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
 }
 
 static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned int channel_id) {
-
+    struct message_channel_node channel;
     if (ioctl_command == MSG_SLOT_CHANNEL && channel_id != 0) {
         // Setting desired channel id to current file
         file->private_data = (void*) channel_id;
 
-        struct message_channel_node channel = get_channel(id);
+        channel = get_channel(id);
         if (channel == NULL) { // channel was not initialized yet
             channel = kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
             memset(&channel, 0, sizeof(struct message_channel_node));
 
-            if (*(cur_slot).channel_node_head == NULL) { // First channel in slot
-                *(cur_slot).channel_node_head = channel;
-                *(cur_slot).channel_node_tail = channel;
+            if (cur_slot->channel_node_head == NULL) { // First channel in slot
+                cur_slot->channel_node_head = channel;
+                cur_slot->channel_node_tail = channel;
             }
             else { // Adding at the end of the linked list
-                *(cur_slot).channel_node_tail.next = &channel;
-                *(cur_slot).channel_node_tail = channel;
+                cur_slot->channel_node_tail.next = &channel;
+                cur_slot->channel_node_tail = channel;
             }
         }
     }
@@ -166,13 +170,15 @@ struct file_operations Fops =
     // TODO check about release and flush
 };
 
-static int init_module(void) {
+static int __init init_module(void) {
+    int major;
+
     // TODO init dev struct
     slots = kmalloc(sizeof(struct message_slot **), GFP_KERNEL);
     memset(&slots, 0, sizeof(struct message_slot **));
 
     // Register driver with desired major number
-    int major = register_chrdev(MAJOR_NUM, DEVICE_NAME, &Fops);
+    major = register_chrdev(MAJOR_NUM, DEVICE_NAME, &Fops);
 
     // Negative values signify an error
     if (major < 0)
@@ -185,7 +191,7 @@ static int init_module(void) {
     return 0;
 }
 
-static void exit_module(void) {
+static void __exit exit_module(void) {
     // TODO free memory using kfree()
     unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
     printk("Unloading Module\n");
