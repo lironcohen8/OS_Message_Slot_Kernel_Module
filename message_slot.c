@@ -22,22 +22,24 @@ struct file_operations Fops =
     // TODO check about release and flush
 };
 
-struct message_channel {
+struct message_channel_node {
     unsigned int id = 0;
     char *msg = NULL; // TODO change to bytes?
     unsigned int message_length;
+    struct message_channel_node *next = NULL;
 };
 
 struct message_slot {
-    unsigned int slot_minor;
-    struct message_channel channels[];
+    unsigned int slot_minor = 0;
+    struct message_channel_node channel_node_head = NULL;
+    struct message_channel_node channel_node_tail = NULL;
 };
 
 static struct message_slot *slots[];
 static int slots_cntr = 0;
 static int channels_cntr = 0;
 
-struct message_channel get_channel(unsigned int id) {
+struct message_channel_node get_channel(unsigned int id) {
     for (int i = 0; i < channels_cntr; i++) {
         if (channels[i].id == id) {
             return channels[i];
@@ -51,9 +53,9 @@ static int device_open(struct inode* inode, struct file* file) {
     if (slots[minor] == NULL) { // Check if we created a data structure for the file
         struct message_slot slot = kmalloc(sizeof(struct message_slot), GFP_KERNEL);
         slot.slot_minor = minor;
-        slot.channels = kmalloc(sizeof(struct message_channel), GFP_KERNEL); // TODO fix 
-        
-        slots[slots_cntr++] = &slot;
+        slot.channels = kmalloc(sizeof(struct message_channel_node), GFP_KERNEL); // TODO fix 
+        slots[minor] = &slot;
+        slots_cntr++;
     }
     return 0;
 }
@@ -67,7 +69,7 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
         return -EINVAL;
     }
 
-    struct message_channel channel = get_channel(id);
+    struct message_channel_node channel = get_channel(id);
 
     // No message exists on the channel
     if (channel.msg == NULL) {
@@ -99,7 +101,7 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
         return -EMSGSIZE;
     }
 
-    struct message_channel channel = get_channel(id);
+    struct message_channel_node channel = get_channel(id);
     kfree(channel.msg);
     channel.msg = kmalloc(length, GFP_KERNEL);
     if (channel.msg == NULL) {
