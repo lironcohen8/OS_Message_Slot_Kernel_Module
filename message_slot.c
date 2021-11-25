@@ -25,7 +25,7 @@ struct file_operations Fops =
 struct message_channel_node {
     unsigned int id = 0;
     char *msg = NULL; // TODO change to bytes?
-    unsigned int message_length;
+    unsigned int message_length = 0;
     struct message_channel_node *next = NULL;
 };
 
@@ -36,14 +36,15 @@ struct message_slot {
 };
 
 static struct message_slot *slots[];
-static int slots_cntr = 0;
-static int channels_cntr = 0;
+struct message_slot cur_slot = NULL;
 
 struct message_channel_node get_channel(unsigned int id) {
-    for (int i = 0; i < channels_cntr; i++) {
-        if (channels[i].id == id) {
-            return channels[i];
+    struct message_channel_node temp = cur_slot.channel_node_head;
+    while (temp != NULL) {
+        if (temp.id == id) {
+            return temp;
         }
+        temp = *(temp.next);
     }
     return NULL;
 }
@@ -53,9 +54,8 @@ static int device_open(struct inode* inode, struct file* file) {
     if (slots[minor] == NULL) { // Check if we created a data structure for the file
         struct message_slot slot = kmalloc(sizeof(struct message_slot), GFP_KERNEL);
         slot.slot_minor = minor;
-        slot.channels = kmalloc(sizeof(struct message_channel_node), GFP_KERNEL); // TODO fix 
         slots[minor] = &slot;
-        slots_cntr++;
+        cur_slot = slot;
     }
     return 0;
 }
@@ -125,6 +125,20 @@ static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned
     if (ioctl_command == MSG_SLOT_CHANNEL && channel_id != 0) {
         // Setting desired channel id to current file
         file->private_data = (void*) channel_id;
+
+        struct message_channel_node channel = get_channel(id);
+        if (channel == NULL) { // channel was not initialized yet
+            channel = kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
+
+            if (cur_slot.channel_node_head == NULL) { // First channel in slot
+                cur_slot.channel_node_head = channel;
+                cur_slot.channel_node_tail = channel;
+            }
+            else { // Adding at the end of the linked list
+                cur_slot.channel_node_tail.next = &channel;
+                cur_slot.channel_node_tail = channel;
+            }
+        }
     }
 
     // command was not MSG_SLOT_CHANNEL or channel_id was 0
