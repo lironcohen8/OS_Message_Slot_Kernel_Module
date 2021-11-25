@@ -171,7 +171,7 @@ struct file_operations Fops =
     // TODO check about release and flush
 };
 
-static int __init init_module(void) {
+static int start_module(void) {
     int major;
 
     // TODO init dev struct
@@ -192,11 +192,11 @@ static int __init init_module(void) {
     return 0;
 }
 
-static void __exit exit_module(void) {
+static void end_module(void) {
     // TODO free memory using kfree()
     unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
     printk("Unloading Module\n");
 }
 
-module_init(init_module);
-module_exit(exit_module);
+module_init(start_module);
+module_exit(end_module);
