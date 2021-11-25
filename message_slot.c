@@ -43,12 +43,12 @@ static struct message_channel_node *get_channel(unsigned int id) {
 static int device_open(struct inode* inode, struct file* file) {
     unsigned int minor = iminor(inode);
     if (slots[minor] == NULL) { // Check if we created a data structure for the file
-        struct message_slot slot = kmalloc(sizeof(struct message_slot), GFP_KERNEL);
-        memset(&slot, 0, sizeof(struct message_slot));
+        struct message_slot *slot = (struct message_slot *) kmalloc(sizeof(struct message_slot), GFP_KERNEL);
+        memset(slot, 0, sizeof(struct message_slot));
 
-        slot.slot_minor = minor;
-        slots[minor] = &slot;
-        cur_slot = &slot;
+        slot->slot_minor = minor;
+        slots[minor] = slot;
+        cur_slot = slot;
     }
     return 0;
 }
@@ -110,8 +110,8 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
 
     // Allocating new memory for message
     kfree(channel->msg);
-    channel->msg = kmalloc(length, GFP_KERNEL);
-    memset(&(channel->msg), 0, sizeof(char *));
+    channel->msg = (char *) kmalloc(length, GFP_KERNEL);
+    memset(channel->msg, 0, sizeof(char));
     if (channel->msg == NULL) {
         return -ENOMEM;
     }
@@ -135,7 +135,7 @@ static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned
 
         channel = get_channel(channel_id);
         if (channel == NULL) { // channel was not initialized yet
-            *channel = kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
+            channel = (struct message_channel_node*) kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
             memset(channel, 0, sizeof(struct message_channel_node));
 
             if (cur_slot->channel_node_head == NULL) { // First channel in slot
@@ -162,12 +162,12 @@ static int device_release(struct inode* inode, struct file* file) {
 
 struct file_operations Fops =
 {
-    .owner	  = THIS_MODULE, 
-    .open     = device_open,
-    .read     = device_read,
-    .write    = device_write,
-    .ioctl    = device_ioctl,
-    .release  = device_release,
+    .owner	        = THIS_MODULE, 
+    .open           = device_open,
+    .read           = device_read,
+    .write          = device_write,
+    .unlocked_ioctl = device_ioctl,
+    .release        = device_release,
     // TODO check about release and flush
 };
 
@@ -175,8 +175,8 @@ static int start_module(void) {
     int major;
 
     // TODO init dev struct
-    slots = kmalloc(sizeof(struct message_slot **), GFP_KERNEL);
-    memset(&slots, 0, sizeof(struct message_slot **));
+    slots = (struct message_slot **) kmalloc(sizeof(struct message_slot **), GFP_KERNEL);
+    memset(slots, 0, sizeof(struct message_slot *));
 
     // Register driver with desired major number
     major = register_chrdev(MAJOR_NUM, DEVICE_NAME, &Fops);
