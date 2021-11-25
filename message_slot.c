@@ -36,10 +36,10 @@ struct message_slot {
 };
 
 static struct message_slot *slots[];
-struct message_slot cur_slot = NULL;
+struct message_slot *cur_slot = NULL;
 
 struct message_channel_node get_channel(unsigned int id) {
-    struct message_channel_node temp = cur_slot.channel_node_head;
+    struct message_channel_node temp = *(cur_slot).channel_node_head;
     while (temp != NULL) {
         if (temp.id == id) {
             return temp;
@@ -55,7 +55,7 @@ static int device_open(struct inode* inode, struct file* file) {
         struct message_slot slot = kmalloc(sizeof(struct message_slot), GFP_KERNEL);
         slot.slot_minor = minor;
         slots[minor] = &slot;
-        cur_slot = slot;
+        cur_slot = &slot;
     }
     return 0;
 }
@@ -70,6 +70,11 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
     }
 
     struct message_channel_node channel = get_channel(id);
+
+    // Channel does not exist
+    if (channel == NULL) {
+        return -ENODATA;
+    }
 
     // No message exists on the channel
     if (channel.msg == NULL) {
@@ -102,6 +107,13 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     }
 
     struct message_channel_node channel = get_channel(id);
+
+    // Channel does not exist
+    if (channel == NULL) {
+        return -ENODATA;
+    }
+
+    // Allocating new memory for message
     kfree(channel.msg);
     channel.msg = kmalloc(length, GFP_KERNEL);
     if (channel.msg == NULL) {
@@ -116,7 +128,6 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
             return -EFAULT;
         }
     }
-
     return length;
 }
 
@@ -130,13 +141,13 @@ static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned
         if (channel == NULL) { // channel was not initialized yet
             channel = kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
 
-            if (cur_slot.channel_node_head == NULL) { // First channel in slot
-                cur_slot.channel_node_head = channel;
-                cur_slot.channel_node_tail = channel;
+            if (*(cur_slot).channel_node_head == NULL) { // First channel in slot
+                *(cur_slot).channel_node_head = channel;
+                *(cur_slot).channel_node_tail = channel;
             }
             else { // Adding at the end of the linked list
-                cur_slot.channel_node_tail.next = &channel;
-                cur_slot.channel_node_tail = channel;
+                *(cur_slot).channel_node_tail.next = &channel;
+                *(cur_slot).channel_node_tail = channel;
             }
         }
     }
@@ -153,7 +164,8 @@ static int device_release(struct inode* inode, struct file* file) {
 
 static int init_module(void) {
     // TODO init dev struct
-    // memset(&device_info, 0, sizeof(struct chardev_info));
+    slots = kmalloc(sizeof(struct message_slot **), GFP_KERNEL);
+    memset(&slots, 0, sizeof(struct message_slot **)); // TODO check if needed
 
     // Register driver with desired major number
     int major = register_chrdev(MAJOR_NUM, DEVICE_NAME, &Fops);
