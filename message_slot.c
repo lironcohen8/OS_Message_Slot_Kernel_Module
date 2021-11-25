@@ -22,18 +22,18 @@ struct message_channel_node {
 
 struct message_slot {
     unsigned int slot_minor;
-    struct message_channel_node channel_node_head;
-    struct message_channel_node channel_node_tail;
+    struct message_channel_node *channel_node_head;
+    struct message_channel_node *channel_node_tail;
 };
 
 static struct message_slot **slots;
-struct message_slot *cur_slot;
+static struct message_slot *cur_slot;
 
-struct message_channel_node get_channel(unsigned int id) {
-    struct message_channel_node *temp = &(cur_slot->channel_node_head);
+static struct message_channel_node *get_channel(unsigned int id) {
+    struct message_channel_node *temp = cur_slot->channel_node_head;
     while (temp != NULL) {
         if (temp->id == id) {
-            return *temp;
+            return temp;
         }
         temp = temp->next;
     }
@@ -54,7 +54,7 @@ static int device_open(struct inode* inode, struct file* file) {
 }
 
 static ssize_t device_read(struct file* file, char __user* buffer, size_t length, loff_t* offset) {
-    struct message_channel_node channel;
+    struct message_channel_node *channel;
     int id, return_val, i;
 
     // No channel has been set on fd
@@ -71,23 +71,23 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
     }
 
     // No message exists on the channel
-    if (channel.msg == NULL) {
+    if (channel->msg == NULL) {
         return -EWOULDBLOCK;
     }
 
     // Writing from channel to buffer
     for(i = 0; i < length && i < MAX_MESSAGE_LENGTH; i++)
     {
-        return_val = put_user(channel.msg[i], &buffer[i]);
+        return_val = put_user(channel->msg[i], &buffer[i]);
         if (return_val != 0) {
             return -EFAULT;
         }
     }
-    return channel.message_length;
+    return channel->message_length;
 }
 
 static ssize_t device_write(struct file* file, const char __user* buffer, size_t length, loff_t* offset) {
-    struct message_channel_node channel;
+    struct message_channel_node *channel;
     int id, return_val, i;
 
     // No channel has been set on fd
@@ -109,17 +109,17 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     }
 
     // Allocating new memory for message
-    kfree(channel.msg);
-    channel.msg = kmalloc(length, GFP_KERNEL);
-    memset(&(channel.msg), 0, sizeof(char *));
-    if (channel.msg == NULL) {
+    kfree(channel->msg);
+    channel->msg = kmalloc(length, GFP_KERNEL);
+    memset(&(channel->msg), 0, sizeof(char *));
+    if (channel->msg == NULL) {
         return -ENOMEM;
     }
 
     // Writing from buffer to channel
     for(i = 0; i < length && i < MAX_MESSAGE_LENGTH; i++)
     {
-        return_val = get_user(channel.msg[i], &buffer[i]);
+        return_val = get_user(channel->msg[i], &buffer[i]);
         if (return_val != 0) {
             return -EFAULT;
         }
@@ -128,22 +128,22 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
 }
 
 static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned int channel_id) {
-    struct message_channel_node channel;
+    struct message_channel_node* channel;
     if (ioctl_command == MSG_SLOT_CHANNEL && channel_id != 0) {
         // Setting desired channel id to current file
         *((int *)file->private_data) = channel_id;
 
         channel = get_channel(channel_id);
         if (channel == NULL) { // channel was not initialized yet
-            channel = kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
-            memset(&channel, 0, sizeof(struct message_channel_node));
+            *channel = kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
+            memset(channel, 0, sizeof(struct message_channel_node));
 
             if (cur_slot->channel_node_head == NULL) { // First channel in slot
                 cur_slot->channel_node_head = channel;
                 cur_slot->channel_node_tail = channel;
             }
             else { // Adding at the end of the linked list
-                cur_slot->channel_node_tail.next = &channel;
+                cur_slot->channel_node_tail->next = channel;
                 cur_slot->channel_node_tail = channel;
             }
         }
