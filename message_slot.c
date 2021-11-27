@@ -44,16 +44,13 @@ static struct message_channel_node *get_channel(unsigned int id) {
 static int device_open(struct inode* inode, struct file* file) {
     unsigned int minor = iminor(inode);
     printk("in open\n");
-    printk("minor is: %d\n", minor);
     if (slots[minor] == NULL) { // Check if we created a data structure for the file
         struct message_slot *slot = (struct message_slot *) kmalloc(sizeof(struct message_slot), GFP_KERNEL);
         memset(slot, 0, sizeof(struct message_slot));
-        printk("slot minor is null!\n");
 
         slot->slot_minor = minor;
         slots[minor] = slot;
         cur_slot = slot;
-        printk("slot minor after open is: %d\n", slot->slot_minor);
     }
     return 0;
 }
@@ -81,6 +78,7 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
         return -EWOULDBLOCK;
     }
 
+    length = channel->message_length;
     // Writing from channel to buffer
     for(i = 0; i < length && i < MAX_MESSAGE_LENGTH; i++)
     {
@@ -97,39 +95,35 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     int id, return_val, i;
 
     printk("in write\n");
-    printk("length is: %ld\n", length);
     // No channel has been set on fd
     if (file->private_data == NULL) {
         return -EINVAL;
     }
 
     // Checking message length
-    if (length == 0 || length > 128) {
+    if (length == 0 || length > MAX_MESSAGE_LENGTH) {
         return -EMSGSIZE;
     }
 
     id = (int)(long)(file->private_data);
-    printk("before get channel \n");
     channel = get_channel(id);
-    printk("after get channel \n");
 
     // Channel does not exist
     if (channel == NULL) {
-        printk("channel is null!\n");
         return -ENODATA;
     }
-    printk("after channel == null\n");
+    channel->msg = (char *) kmalloc(length, GFP_KERNEL);
+    memset(channel->msg, 0, length);
+    channel->message_length = length;
 
     // Writing from buffer to channel
-    for(i = 0; i < length && i < MAX_MESSAGE_LENGTH; i++)
+    for(i = 0; i < length; i++)
     {
         return_val = get_user(channel->msg[i], &buffer[i]);
         if (return_val != 0) {
             return -EFAULT;
         }
-        printk("i is :%d\n", i);
     }
-    printk("after for\n");
     return length;
 }
 
@@ -137,21 +131,16 @@ static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned
     struct message_channel_node* channel;
     printk("in device_ioctl\n");
     if (ioctl_command == MSG_SLOT_CHANNEL && channel_id != 0) {
-        printk("in if in ioctl\n");
         // Setting desired channel id to current file
         file->private_data = (void *) channel_id;
 
         channel = get_channel(channel_id);
         if (channel == NULL) { // channel was not initialized yet
-            printk("channel id null in ioctl (should)\n");
             channel = (struct message_channel_node*) kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
             memset(channel, 0, sizeof(struct message_channel_node));
             channel->id = channel_id;
-            channel->msg = (char *) kmalloc(MAX_MESSAGE_LENGTH, GFP_KERNEL);
-            memset(channel->msg, 0, MAX_MESSAGE_LENGTH);
 
             if (cur_slot->channel_node_head == NULL) { // First channel in slot
-                printk("first channel in slot (should)\n");
                 cur_slot->channel_node_head = channel;
                 cur_slot->channel_node_tail = channel;
             }
@@ -170,7 +159,7 @@ static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned
 }
 
 static int device_release(struct inode* inode, struct file* file) {
-    printk("Released Module\n");
+    printk("in release module\n");
     return 0;
 }
 
@@ -203,14 +192,14 @@ static int start_module(void) {
         return major;
     }
 
-    printk("Loaded Module\n");
+    printk("in init module\n");
     return 0;
 }
 
 static void end_module(void) {
     // TODO free memory using kfree()
     unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
-    printk("Unloading Module\n");
+    printk("in exit module\n");
 }
 
 module_init(start_module);
