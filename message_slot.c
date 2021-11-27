@@ -27,8 +27,8 @@ struct message_slot {
     struct message_channel_node *channel_node_tail;
 };
 
-static struct message_slot **slots;
-static struct message_slot *cur_slot;
+static struct message_slot **slots; // array of pointers to slots struct
+static struct message_slot *cur_slot; // pointer to cur slot
 
 static struct message_channel_node *get_channel(unsigned int id) {
     struct message_channel_node *temp = cur_slot->channel_node_head;
@@ -43,13 +43,17 @@ static struct message_channel_node *get_channel(unsigned int id) {
 
 static int device_open(struct inode* inode, struct file* file) {
     unsigned int minor = iminor(inode);
+    printk("in open\n");
+    printk("minor is: %d\n", minor);
     if (slots[minor] == NULL) { // Check if we created a data structure for the file
         struct message_slot *slot = (struct message_slot *) kmalloc(sizeof(struct message_slot), GFP_KERNEL);
         memset(slot, 0, sizeof(struct message_slot));
+        printk("slot minor is null!\n");
 
         slot->slot_minor = minor;
         slots[minor] = slot;
         cur_slot = slot;
+        printk("slot minor after open is: %d\n", slot->slot_minor);
     }
     return 0;
 }
@@ -58,12 +62,13 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
     struct message_channel_node *channel;
     int id, return_val, i;
 
+    printk("in read\n");
     // No channel has been set on fd
     if (file->private_data == NULL) {
         return -EINVAL;
     }
 
-    id = *((int *)file->private_data);
+    id = (int)(long)(file->private_data);
     channel = get_channel(id);
 
     // Channel does not exist
@@ -91,6 +96,8 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     struct message_channel_node *channel;
     int id, return_val, i;
 
+    printk("in write\n");
+    printk("length is: %ld\n", length);
     // No channel has been set on fd
     if (file->private_data == NULL) {
         return -EINVAL;
@@ -101,21 +108,17 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
         return -EMSGSIZE;
     }
 
-    id = *((int *)file->private_data);
+    id = (int)(long)(file->private_data);
+    printk("before get channel \n");
     channel = get_channel(id);
+    printk("after get channel \n");
 
     // Channel does not exist
     if (channel == NULL) {
+        printk("channel is null!\n");
         return -ENODATA;
     }
-
-    // Allocating new memory for message
-    kfree(channel->msg);
-    channel->msg = (char *) kmalloc(length, GFP_KERNEL);
-    memset(channel->msg, 0, sizeof(char));
-    if (channel->msg == NULL) {
-        return -ENOMEM;
-    }
+    printk("after channel == null\n");
 
     // Writing from buffer to channel
     for(i = 0; i < length && i < MAX_MESSAGE_LENGTH; i++)
@@ -124,22 +127,31 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
         if (return_val != 0) {
             return -EFAULT;
         }
+        printk("i is :%d\n", i);
     }
+    printk("after for\n");
     return length;
 }
 
 static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned long channel_id) {
     struct message_channel_node* channel;
+    printk("in device_ioctl\n");
     if (ioctl_command == MSG_SLOT_CHANNEL && channel_id != 0) {
+        printk("in if in ioctl\n");
         // Setting desired channel id to current file
-        *((int *)file->private_data) = channel_id;
+        file->private_data = (void *) channel_id;
 
         channel = get_channel(channel_id);
         if (channel == NULL) { // channel was not initialized yet
+            printk("channel id null in ioctl (should)\n");
             channel = (struct message_channel_node*) kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
             memset(channel, 0, sizeof(struct message_channel_node));
+            channel->id = channel_id;
+            channel->msg = (char *) kmalloc(MAX_MESSAGE_LENGTH, GFP_KERNEL);
+            memset(channel->msg, 0, MAX_MESSAGE_LENGTH);
 
             if (cur_slot->channel_node_head == NULL) { // First channel in slot
+                printk("first channel in slot (should)\n");
                 cur_slot->channel_node_head = channel;
                 cur_slot->channel_node_tail = channel;
             }
@@ -158,6 +170,7 @@ static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned
 }
 
 static int device_release(struct inode* inode, struct file* file) {
+    printk("Released Module\n");
     return 0;
 }
 
@@ -174,10 +187,11 @@ struct file_operations Fops =
 
 static int start_module(void) {
     int major;
+    printk("----------------started over---------\n");
 
     // TODO init dev struct
-    slots = (struct message_slot **) kmalloc(sizeof(struct message_slot **), GFP_KERNEL);
-    memset(slots, 0, sizeof(struct message_slot *));
+    slots = (struct message_slot **) kmalloc(MAX_SLOTS_NUM * sizeof(struct message_slot *), GFP_KERNEL);
+    memset(slots, 0, MAX_SLOTS_NUM * sizeof(struct message_slot *));
 
     // Register driver with desired major number
     major = register_chrdev(MAJOR_NUM, DEVICE_NAME, &Fops);
