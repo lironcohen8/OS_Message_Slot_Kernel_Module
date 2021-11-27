@@ -10,6 +10,8 @@
 #include <linux/uaccess.h>
 #include <linux/string.h>
 
+MODULE_LICENSE("GPL");
+
 #include "message_slot.h"
 
 struct message_channel_node {
