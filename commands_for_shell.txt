@@ -1,4 +1,4 @@
-sudo rmmod message_slot; sudo rm /dev/slot0; make
+sudo rmmod message_slot; sudo rm /dev/slot*; make
 
 sudo insmod message_slot.ko; sudo mknod /dev/slot0 c 240 0; sudo chmod 777 /dev/slot0
 
