@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-    unsigned int channel_id, message_slot_fd, return_val;
+    int channel_id, message_slot_fd, return_val;
     
     if (argc != 4) {
         perror("Number of cmd args is not 3");
@@ -36,7 +36,9 @@ int main(int argc, char *argv[]) {
     // Writing the message to the slot
     // TODO without /0
     return_val = write(message_slot_fd, message, strlen(message));
+    printf("return val in user write is %d\n", return_val);
     if (return_val < 0) {
+        printf("in user write error if\n");
         perror("Can't write the message to message slot");
         exit(1);
     }

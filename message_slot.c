@@ -34,7 +34,7 @@ static struct message_channel_node *get_channel(unsigned int id) {
     struct message_channel_node *temp = cur_slot->channel_node_head;
     while (temp != NULL) {
         if (temp->id == id) {
-            printk("slot is %d, channel id is %d, message in channel is %s\n", cur_slot->slot_minor, id, temp->msg);
+            // printk("slot is %d, channel id is %d, message in channel is %s\n", cur_slot->slot_minor, id, temp->msg);
             return temp;
         }
         temp = temp->next;
@@ -93,6 +93,7 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     struct message_channel_node *channel;
     int id, return_val, i;
 
+    printk("message length in write is: %ld\n", length);
     // No channel has been set on fd
     if (file->private_data == NULL) {
         return -EINVAL;
@@ -100,6 +101,7 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
 
     // Checking message length
     if (length == 0 || length > MAX_MESSAGE_LENGTH) {
+        printk("in if!");
         return -EMSGSIZE;
     }
 
