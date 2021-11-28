@@ -34,6 +34,7 @@ static struct message_channel_node *get_channel(unsigned int id) {
     struct message_channel_node *temp = cur_slot->channel_node_head;
     while (temp != NULL) {
         if (temp->id == id) {
+            printk("slot is %d, channel id is %d, message in channel is %s\n", cur_slot->slot_minor, id, temp->msg);
             return temp;
         }
         temp = temp->next;
@@ -51,6 +52,10 @@ static int device_open(struct inode* inode, struct file* file) {
         slot->slot_minor = minor;
         slots[minor] = slot;
         cur_slot = slot;
+        printk("cur minor in open is %d\n", minor);
+    }
+    else {
+        cur_slot = slots[minor];
     }
     return 0;
 }
