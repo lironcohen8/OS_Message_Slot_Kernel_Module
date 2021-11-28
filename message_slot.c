@@ -44,19 +44,14 @@ static struct message_channel_node *get_channel(unsigned int id) {
 
 static int device_open(struct inode* inode, struct file* file) {
     unsigned int minor = iminor(inode);
-    printk("in open\n");
     if (slots[minor] == NULL) { // Check if we created a data structure for the file
         struct message_slot *slot = (struct message_slot *) kmalloc(sizeof(struct message_slot), GFP_KERNEL);
         memset(slot, 0, sizeof(struct message_slot));
 
         slot->slot_minor = minor;
         slots[minor] = slot;
-        cur_slot = slot;
-        printk("cur minor in open is %d\n", minor);
     }
-    else {
-        cur_slot = slots[minor];
-    }
+    cur_slot = slots[minor];
     return 0;
 }
 
@@ -64,7 +59,6 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
     struct message_channel_node *channel;
     int id, return_val, i;
 
-    printk("in read\n");
     // No channel has been set on fd
     if (file->private_data == NULL) {
         return -EINVAL;
@@ -99,7 +93,6 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     struct message_channel_node *channel;
     int id, return_val, i;
 
-    printk("in write\n");
     // No channel has been set on fd
     if (file->private_data == NULL) {
         return -EINVAL;
@@ -134,7 +127,7 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
 
 static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned long channel_id) {
     struct message_channel_node* channel;
-    printk("in device_ioctl\n");
+
     if (ioctl_command == MSG_SLOT_CHANNEL && channel_id != 0) {
         // Setting desired channel id to current file
         file->private_data = (void *) channel_id;
@@ -164,7 +157,6 @@ static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned
 }
 
 static int device_release(struct inode* inode, struct file* file) {
-    printk("in release module\n");
     return 0;
 }
 
@@ -197,14 +189,14 @@ static int start_module(void) {
         return major;
     }
 
-    printk("in init module\n");
+    printk("init module\n");
     return 0;
 }
 
 static void end_module(void) {
     // TODO free memory using kfree()
     unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
-    printk("in exit module\n");
+    printk("exit module\n");
 }
 
 module_init(start_module);
