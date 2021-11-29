@@ -27,13 +27,9 @@ struct message_slot {
     struct message_channel_node *channel_node_tail;
 };
 
-struct slot_and_channel_context {
-    unsigned int channel_id;
-}
-
 static struct message_slot **slots; // array of pointers to slots struct
 
-static struct message_channel_node *get_channel(unsigned int id) {
+static struct message_channel_node *get_channel(struct message_slot* cur_slot, unsigned int id) {
     struct message_channel_node *temp = cur_slot->channel_node_head;
     while (temp != NULL) {
         if (temp->channel_id == id) {
@@ -54,12 +50,12 @@ static int device_open(struct inode* inode, struct file* file) {
         slot->slot_minor = minor;
         slots[minor] = slot;
     }
-    cur_slot = slots[minor];
     return 0;
 }
 
 static ssize_t device_read(struct file* file, char __user* buffer, size_t length, loff_t* offset) {
     struct message_channel_node *channel;
+    struct message_slot* cur_slot;
     int channel_id, return_val, i;
 
     // No channel has been set on fd
@@ -67,8 +63,9 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
         return -EINVAL;
     }
 
+    cur_slot = slots[iminor(file->f_inode)];
     channel_id = (int)(long)(file->private_data);
-    channel = get_channel(channel_id);
+    channel = get_channel(cur_slot, channel_id);
 
     // Channel does not exist
     if (channel == NULL) {
@@ -94,6 +91,7 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
 
 static ssize_t device_write(struct file* file, const char __user* buffer, size_t length, loff_t* offset) {
     struct message_channel_node *channel;
+    struct message_slot* cur_slot;
     int channel_id, return_val, i;
 
     // No channel has been set on fd
@@ -106,8 +104,9 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
         return -EMSGSIZE;
     }
 
+    cur_slot = slots[iminor(file->f_inode)];
     channel_id = (int)(long)(file->private_data);
-    channel = get_channel(channel_id);
+    channel = get_channel(cur_slot, channel_id);
 
     // Channel does not exist
     if (channel == NULL) {
@@ -131,12 +130,14 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
 
 static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned long channel_id) {
     struct message_channel_node* channel;
+    struct message_slot* cur_slot;
 
     if (ioctl_command == MSG_SLOT_CHANNEL && channel_id != 0) {
         // Setting desired channel id to current file
         file->private_data = (void *) channel_id;
+        cur_slot = slots[iminor(file->f_inode)];
 
-        channel = get_channel(channel_id);
+        channel = get_channel(cur_slot, channel_id);
         if (channel == NULL) { // channel was not initialized yet
             channel = (struct message_channel_node*) kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
             memset(channel, 0, sizeof(struct message_channel_node));
