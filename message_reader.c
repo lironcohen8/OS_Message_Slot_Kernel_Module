@@ -51,7 +51,6 @@ int main(int argc, char *argv[]) {
         perror("Can't print the message to standard output");
         exit(1);
     }
-    printf("\nfinished reading in reader\n");
 
     exit(0);
 }

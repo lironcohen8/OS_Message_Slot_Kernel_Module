@@ -46,7 +46,6 @@ int main(int argc, char *argv[]) {
         perror("Can't close device file");
         exit(1);
     }
-    printf("finished writing %s from sender\n", message);
 
     exit(0);
 }
