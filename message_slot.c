@@ -208,6 +208,9 @@ static void end_module(void) {
             while (cur_channel_node != NULL) {
                 temp_node = cur_channel_node;
                 cur_channel_node = cur_channel_node->next;
+                if (temp_node->msg != NULL) {
+                    kfree(temp_node->msg);
+                }
                 kfree(temp_node);
             }
             kfree(slots[i]);
