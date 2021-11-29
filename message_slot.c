@@ -15,7 +15,7 @@ MODULE_LICENSE("GPL");
 #include "message_slot.h"
 
 struct message_channel_node {
-    unsigned int id;
+    unsigned int channel_id;
     char *msg; // TODO change to bytes?
     unsigned int message_length;
     struct message_channel_node *next;
@@ -27,13 +27,16 @@ struct message_slot {
     struct message_channel_node *channel_node_tail;
 };
 
+struct slot_and_channel_context {
+    unsigned int channel_id;
+}
+
 static struct message_slot **slots; // array of pointers to slots struct
-static struct message_slot *cur_slot; // pointer to cur slot
 
 static struct message_channel_node *get_channel(unsigned int id) {
     struct message_channel_node *temp = cur_slot->channel_node_head;
     while (temp != NULL) {
-        if (temp->id == id) {
+        if (temp->channel_id == id) {
             // printk("slot is %d, channel id is %d, message in channel is %s\n", cur_slot->slot_minor, id, temp->msg);
             return temp;
         }
@@ -57,15 +60,15 @@ static int device_open(struct inode* inode, struct file* file) {
 
 static ssize_t device_read(struct file* file, char __user* buffer, size_t length, loff_t* offset) {
     struct message_channel_node *channel;
-    int id, return_val, i;
+    int channel_id, return_val, i;
 
     // No channel has been set on fd
     if (file->private_data == NULL) {
         return -EINVAL;
     }
 
-    id = (int)(long)(file->private_data);
-    channel = get_channel(id);
+    channel_id = (int)(long)(file->private_data);
+    channel = get_channel(channel_id);
 
     // Channel does not exist
     if (channel == NULL) {
@@ -91,7 +94,7 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
 
 static ssize_t device_write(struct file* file, const char __user* buffer, size_t length, loff_t* offset) {
     struct message_channel_node *channel;
-    int id, return_val, i;
+    int channel_id, return_val, i;
 
     // No channel has been set on fd
     if (file->private_data == NULL) {
@@ -103,8 +106,8 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
         return -EMSGSIZE;
     }
 
-    id = (int)(long)(file->private_data);
-    channel = get_channel(id);
+    channel_id = (int)(long)(file->private_data);
+    channel = get_channel(channel_id);
 
     // Channel does not exist
     if (channel == NULL) {
@@ -137,7 +140,7 @@ static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned
         if (channel == NULL) { // channel was not initialized yet
             channel = (struct message_channel_node*) kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
             memset(channel, 0, sizeof(struct message_channel_node));
-            channel->id = channel_id;
+            channel->channel_id = channel_id;
 
             if (cur_slot->channel_node_head == NULL) { // First channel in slot
                 cur_slot->channel_node_head = channel;
