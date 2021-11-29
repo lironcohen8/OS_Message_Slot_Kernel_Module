@@ -1,0 +1,9 @@
+
+*.tmp
+*.cmd
+*.mod
+*.ko
+message_slot.mod.c
+*.o
+*.symvers
+*.order
