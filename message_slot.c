@@ -8,7 +8,6 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
-#include <linux/string.h>
 
 MODULE_LICENSE("GPL");
 
