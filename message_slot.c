@@ -53,12 +53,12 @@ static int device_open(struct inode* inode, struct file* file) {
     return 0;
 }
 
-static ssize_t device_read(struct file* file, char __user* buffer, size_t length, loff_t* offset) {
+static ssize_t device_read(struct file* file, char __user* buffer, size_t buffer_length, loff_t* offset) {
     struct message_channel_node *channel;
     struct message_slot* cur_slot;
-    int channel_id, return_val, i;
+    int channel_id, return_val, i, message_length;
 
-    // No channel has been set on fd
+    // Check if no channel has been set on fd
     if (file->private_data == NULL) {
         return -EINVAL;
     }
@@ -67,19 +67,25 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
     channel_id = (int)(long)(file->private_data);
     channel = get_channel(cur_slot, channel_id);
 
-    // Channel does not exist
+    // Check if channel does not exist
     if (channel == NULL) {
         return -ENODATA;
     }
 
-    // No message exists on the channel
+    // Check if no message exists on the channel
     if (channel->msg == NULL) {
         return -EWOULDBLOCK;
     }
 
-    length = channel->message_length;
+    message_length = channel->message_length;
+
+    // Check if buffer is too small for message
+    if (buffer_length < message_length) {
+        return -ENOSPC;
+    }
+    
     // Writing from channel to buffer
-    for(i = 0; i < length && i < MAX_MESSAGE_LENGTH; i++)
+    for(i = 0; i < message_length && i < MAX_MESSAGE_LENGTH; i++)
     {
         return_val = put_user(channel->msg[i], &buffer[i]);
         if (return_val != 0) {
@@ -89,18 +95,18 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t length
     return channel->message_length;
 }
 
-static ssize_t device_write(struct file* file, const char __user* buffer, size_t length, loff_t* offset) {
+static ssize_t device_write(struct file* file, const char __user* buffer, size_t message_length, loff_t* offset) {
     struct message_channel_node *channel;
     struct message_slot* cur_slot;
     int channel_id, return_val, i;
 
-    // No channel has been set on fd
+    // Check if no channel has been set on fd
     if (file->private_data == NULL) {
         return -EINVAL;
     }
 
     // Checking message length
-    if (length == 0 || length > MAX_MESSAGE_LENGTH) {
+    if (message_length == 0 || message_length > MAX_MESSAGE_LENGTH) {
         return -EMSGSIZE;
     }
 
@@ -108,24 +114,24 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     channel_id = (int)(long)(file->private_data);
     channel = get_channel(cur_slot, channel_id);
 
-    // Channel does not exist
+    // Check if channel does not exist
     if (channel == NULL) {
         return -ENODATA;
     }
 
-    channel->msg = (char *) kmalloc(length, GFP_KERNEL);
-    memset(channel->msg, 0, length);
-    channel->message_length = length;
+    channel->msg = (char *) kmalloc(message_length, GFP_KERNEL);
+    memset(channel->msg, 0, message_length);
+    channel->message_length = message_length;
 
     // Writing from buffer to channel
-    for(i = 0; i < length; i++)
+    for(i = 0; i < message_length; i++)
     {
         return_val = get_user(channel->msg[i], &buffer[i]);
         if (return_val != 0) {
             return -EFAULT;
         }
     }
-    return length;
+    return message_length;
 }
 
 static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned long channel_id) {
