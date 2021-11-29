@@ -5,3 +5,9 @@ sudo insmod message_slot.ko; sudo mknod /dev/slot0 c 240 0; sudo chmod 777 /dev/
 gcc -g -Wall -std=c11 message_sender.c; ./a.out /dev/slot0 1 hello
 
 gcc -g -Wall -std=c11 message_reader.c; ./a.out /dev/slot0 1
+
+long message:
+jkfdsgjhbsdghjbsdhgsjgsdjbgjsgjsvnxcbvjkfdsgjhbsdghjbsdhgsjgsdjbgjsgjsvnxcbvjkfdsgjhbsdghjbjfhjgfgdfhdfsghfhfvagfvhasvfsdhgsjgsdjbgjsgjsvnxcbv
+
+big channel number:
+104857602
