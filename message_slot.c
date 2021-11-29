@@ -202,7 +202,6 @@ static void end_module(void) {
     struct message_channel_node *cur_channel_node, *temp_node;
     int i;
     for (i = 0; i < MAX_SLOTS_NUM; i++) {
-        printk("freeing loop in i=%d\n", i);
         cur_slot = slots[i];
         if (cur_slot != NULL) {
             cur_channel_node = cur_slot->channel_node_head;
