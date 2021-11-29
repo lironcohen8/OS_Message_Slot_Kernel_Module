@@ -34,9 +34,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Writing the message to the slot
-    // TODO without /0
     return_val = write(message_slot_fd, message, strlen(message));
-    if (return_val < 0) {
+    if (return_val != strlen(message)) {
         perror("Can't write the message to message slot");
         exit(1);
     }

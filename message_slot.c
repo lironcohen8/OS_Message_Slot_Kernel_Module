@@ -93,7 +93,6 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     struct message_channel_node *channel;
     int id, return_val, i;
 
-    printk("message length in write is: %ld\n", length);
     // No channel has been set on fd
     if (file->private_data == NULL) {
         return -EINVAL;
@@ -101,7 +100,6 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
 
     // Checking message length
     if (length == 0 || length > MAX_MESSAGE_LENGTH) {
-        printk("in if!");
         return -EMSGSIZE;
     }
 
@@ -112,6 +110,7 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     if (channel == NULL) {
         return -ENODATA;
     }
+
     channel->msg = (char *) kmalloc(length, GFP_KERNEL);
     memset(channel->msg, 0, length);
     channel->message_length = length;
@@ -177,7 +176,6 @@ static int start_module(void) {
     int major;
     printk("----------------started over---------\n");
 
-    // TODO init dev struct
     slots = (struct message_slot **) kmalloc(MAX_SLOTS_NUM * sizeof(struct message_slot *), GFP_KERNEL);
     memset(slots, 0, MAX_SLOTS_NUM * sizeof(struct message_slot *));
 
