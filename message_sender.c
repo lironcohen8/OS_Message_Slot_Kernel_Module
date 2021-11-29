@@ -36,9 +36,7 @@ int main(int argc, char *argv[]) {
     // Writing the message to the slot
     // TODO without /0
     return_val = write(message_slot_fd, message, strlen(message));
-    printf("return val in user write is %d\n", return_val);
     if (return_val < 0) {
-        printf("in user write error if\n");
         perror("Can't write the message to message slot");
         exit(1);
     }
