@@ -198,7 +198,20 @@ static int start_module(void) {
 }
 
 static void end_module(void) {
-    // TODO free memory using kfree()
+    struct message_slot* cur_slot; 
+    struct message_channel_node *cur_channel_node, *temp_node;
+    int i;
+    for (i = 0; i < MAX_SLOTS_NUM; i++) {
+        cur_slot = slots[i];
+        cur_channel_node = cur_slot->channel_node_head;
+        while (cur_channel_node != NULL) {
+            temp_node = cur_channel_node;
+            cur_channel_node = cur_channel_node->next;
+            kfree(temp_node);
+        }
+        kfree(slots[i]);
+    }
+    kfree(slots);
     unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
     printk("exit module\n");
 }
