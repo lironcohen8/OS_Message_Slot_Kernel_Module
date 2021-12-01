@@ -15,7 +15,7 @@ MODULE_LICENSE("GPL");
 
 struct message_channel_node {
     unsigned int channel_id;
-    char *msg; // TODO change to bytes?
+    char *msg;
     unsigned int message_length;
     struct message_channel_node *next;
 };
@@ -32,7 +32,7 @@ static struct message_channel_node *get_channel(struct message_slot* cur_slot, u
     struct message_channel_node *temp = cur_slot->channel_node_head;
     while (temp != NULL) {
         if (temp->channel_id == id) {
-            // printk("slot is %d, channel id is %d, message in channel is %s\n", cur_slot->slot_minor, id, temp->msg);
+            // TODO printk("slot is %d, channel id is %d, message in channel is %s\n", cur_slot->slot_minor, id, temp->msg);
             return temp;
         }
         temp = temp->next;
@@ -178,7 +178,6 @@ struct file_operations Fops =
     .write          = device_write,
     .unlocked_ioctl = device_ioctl,
     .release        = device_release,
-    // TODO check about release and flush
 };
 
 static int start_module(void) {
@@ -216,12 +215,12 @@ static void end_module(void) {
                 if (temp_node->msg != NULL) {
                     kfree(temp_node->msg);
                 }
-                kfree(temp_node);
+                kfree(temp_node); // Freeing channel node
             }
-            kfree(slots[i]);
+            kfree(slots[i]); // Freeing slot
         }
     }
-    kfree(slots);
+    kfree(slots); // Freeing slots array
     unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
     printk("exit module\n");
 }

@@ -18,6 +18,7 @@ int main(int argc, char *argv[]) {
     char *file_path = argv[1];
     sscanf(argv[2],"%u",&channel_id);
     char *message = argv[3];
+    printf("%s", message);
 
     // Opening message slot device file
     message_slot_fd = open(file_path, O_RDWR);
