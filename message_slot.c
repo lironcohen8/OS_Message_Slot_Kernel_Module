@@ -29,6 +29,7 @@ struct message_slot {
 static struct message_slot **slots; // array of pointers to slots struct
 
 static struct message_channel_node *get_channel(struct message_slot* cur_slot, unsigned int id) {
+    // Returns relevant channel by id
     struct message_channel_node *temp = cur_slot->channel_node_head;
     while (temp != NULL) {
         if (temp->channel_id == id) {
@@ -41,7 +42,7 @@ static struct message_channel_node *get_channel(struct message_slot* cur_slot, u
 }
 
 static int device_open(struct inode* inode, struct file* file) {
-    unsigned int minor = iminor(inode);
+    unsigned int minor = iminor(inode); // Getting minor number
     if (slots[minor] == NULL) { // Check if we created a data structure for the file
         struct message_slot *slot = (struct message_slot *) kmalloc(sizeof(struct message_slot), GFP_KERNEL);
         // Checks if allocation succeeded
@@ -67,6 +68,7 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t buffer
     }
 
     cur_slot = slots[iminor(file->f_inode)];
+    // Gets relevant channel
     channel_id = (int)(long)(file->private_data);
     channel = get_channel(cur_slot, channel_id);
 
@@ -114,6 +116,7 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     }
 
     cur_slot = slots[iminor(file->f_inode)];
+    // Gets relevant channel
     channel_id = (int)(long)(file->private_data);
     channel = get_channel(cur_slot, channel_id);
 
@@ -237,6 +240,8 @@ static void end_module(void) {
         }
     }
     kfree(slots); // Freeing slots array
+    
+    // Unregister driver with desired major number
     unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
     printk("exit module\n");
 }

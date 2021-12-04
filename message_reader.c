@@ -9,11 +9,13 @@ int main(int argc, char *argv[]) {
     int channel_id, message_slot_fd, return_val, num_of_bytes_read;
     char buffer[MAX_MESSAGE_LENGTH];
     
+    // Checking number of arguments
     if (argc != 3) {
         perror("Number of cmd args is not 2");
 	    exit(1);
     }
-
+    
+    // Parsing arguments
     char *file_path = argv[1];
     sscanf(argv[2],"%d",&channel_id);
 
