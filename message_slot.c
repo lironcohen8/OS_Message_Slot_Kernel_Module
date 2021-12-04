@@ -44,6 +44,10 @@ static int device_open(struct inode* inode, struct file* file) {
     unsigned int minor = iminor(inode);
     if (slots[minor] == NULL) { // Check if we created a data structure for the file
         struct message_slot *slot = (struct message_slot *) kmalloc(sizeof(struct message_slot), GFP_KERNEL);
+        // Checks if allocation succeeded
+        if (slot == NULL) {
+            return -ENOMEM;
+        }
         memset(slot, 0, sizeof(struct message_slot));
 
         slot->slot_minor = minor;
@@ -119,6 +123,10 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
     }
 
     channel->msg = (char *) kmalloc(message_length, GFP_KERNEL);
+    // Checks if allocation succeeded
+    if (channel->msg == NULL) {
+        return -ENOMEM;
+    }
     memset(channel->msg, 0, message_length);
     channel->message_length = message_length;
 
@@ -145,6 +153,10 @@ static long device_ioctl(struct file* file, unsigned int ioctl_command, unsigned
         channel = get_channel(cur_slot, channel_id);
         if (channel == NULL) { // channel was not initialized yet
             channel = (struct message_channel_node*) kmalloc(sizeof(struct message_channel_node), GFP_KERNEL);
+            // Checks if allocation succeeded
+            if (channel == NULL) {
+                return -ENOMEM;
+            }
             memset(channel, 0, sizeof(struct message_channel_node));
             channel->channel_id = channel_id;
 
@@ -185,6 +197,10 @@ static int start_module(void) {
     printk("----------------started over---------\n");
 
     slots = (struct message_slot **) kmalloc(MAX_SLOTS_NUM * sizeof(struct message_slot *), GFP_KERNEL);
+    // Checks if allocation succeeded
+    if (slots == NULL) {
+        return -ENOMEM;
+    }
     memset(slots, 0, MAX_SLOTS_NUM * sizeof(struct message_slot *));
 
     // Register driver with desired major number
