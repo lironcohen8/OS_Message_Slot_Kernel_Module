@@ -33,7 +33,6 @@ static struct message_channel_node *get_channel(struct message_slot* cur_slot, u
     struct message_channel_node *temp = cur_slot->channel_node_head;
     while (temp != NULL) {
         if (temp->channel_id == id) {
-            // TODO printk("slot is %d, channel id is %d, message in channel is %s\n", cur_slot->slot_minor, id, temp->msg);
             return temp;
         }
         temp = temp->next;
@@ -197,7 +196,6 @@ struct file_operations Fops =
 
 static int start_module(void) {
     int major;
-    printk("----------------started over---------\n");
 
     // Register driver with desired major number
     major = register_chrdev(MAJOR_NUM, DEVICE_NAME, &Fops);
@@ -216,7 +214,6 @@ static int start_module(void) {
     }
     memset(slots, 0, MAX_SLOTS_NUM * sizeof(struct message_slot *));
 
-    printk("init module\n");
     return 0;
 }
 
@@ -243,7 +240,6 @@ static void end_module(void) {
     
     // Unregister driver with desired major number
     unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
-    printk("exit module\n");
 }
 
 module_init(start_module);
