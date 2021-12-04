@@ -196,13 +196,6 @@ static int start_module(void) {
     int major;
     printk("----------------started over---------\n");
 
-    slots = (struct message_slot **) kmalloc(MAX_SLOTS_NUM * sizeof(struct message_slot *), GFP_KERNEL);
-    // Checks if allocation succeeded
-    if (slots == NULL) {
-        return -ENOMEM;
-    }
-    memset(slots, 0, MAX_SLOTS_NUM * sizeof(struct message_slot *));
-
     // Register driver with desired major number
     major = register_chrdev(MAJOR_NUM, DEVICE_NAME, &Fops);
 
@@ -212,6 +205,13 @@ static int start_module(void) {
         printk(KERN_ERR "%s registraion failed for %d\n", DEVICE_NAME, major);
         return major;
     }
+
+    slots = (struct message_slot **) kmalloc(MAX_SLOTS_NUM * sizeof(struct message_slot *), GFP_KERNEL);
+    // Checks if allocation succeeded
+    if (slots == NULL) {
+        return -ENOMEM;
+    }
+    memset(slots, 0, MAX_SLOTS_NUM * sizeof(struct message_slot *));
 
     printk("init module\n");
     return 0;
@@ -229,7 +229,7 @@ static void end_module(void) {
                 temp_node = cur_channel_node;
                 cur_channel_node = cur_channel_node->next;
                 if (temp_node->msg != NULL) {
-                    kfree(temp_node->msg);
+                    kfree(temp_node->msg); // Freeing message
                 }
                 kfree(temp_node); // Freeing channel node
             }
