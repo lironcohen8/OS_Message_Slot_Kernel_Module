@@ -6,7 +6,8 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-    int channel_id, message_slot_fd, return_val, num_of_bytes_read;
+    int message_slot_fd, return_val, num_of_bytes_read;
+    unsigned long channel_id;
     char buffer[MAX_MESSAGE_LENGTH];
     
     // Checking number of arguments
@@ -17,7 +18,7 @@ int main(int argc, char *argv[]) {
     
     // Parsing arguments
     char *file_path = argv[1];
-    sscanf(argv[2],"%d",&channel_id);
+    sscanf(argv[2],"%lu",&channel_id);
 
     // Opening message slot device file
     message_slot_fd = open(file_path, O_RDWR);

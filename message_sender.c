@@ -7,8 +7,10 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-    int channel_id, message_slot_fd, return_val;
+    int message_slot_fd, return_val;
+    unsigned long channel_id;
     
+    // Checking number of arguments
     if (argc != 4) {
         perror("Number of cmd args is not 3");
 	    exit(1);
@@ -16,7 +18,7 @@ int main(int argc, char *argv[]) {
 
     // Parsing arguments
     char *file_path = argv[1];
-    sscanf(argv[2],"%u",&channel_id);
+    sscanf(argv[2],"%lu",&channel_id);
     char *message = argv[3];
 
     // Opening message slot device file

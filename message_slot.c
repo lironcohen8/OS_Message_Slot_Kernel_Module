@@ -14,7 +14,7 @@ MODULE_LICENSE("GPL");
 #include "message_slot.h"
 
 struct message_channel_node {
-    unsigned int channel_id;
+    unsigned long channel_id;
     char *msg;
     unsigned int message_length;
     struct message_channel_node *next;
@@ -28,7 +28,7 @@ struct message_slot {
 
 static struct message_slot **slots; // array of pointers to slots struct
 
-static struct message_channel_node *get_channel(struct message_slot* cur_slot, unsigned int id) {
+static struct message_channel_node *get_channel(struct message_slot* cur_slot, unsigned long id) {
     // Returns relevant channel by id
     struct message_channel_node *temp = cur_slot->channel_node_head;
     while (temp != NULL) {
@@ -59,7 +59,8 @@ static int device_open(struct inode* inode, struct file* file) {
 static ssize_t device_read(struct file* file, char __user* buffer, size_t buffer_length, loff_t* offset) {
     struct message_channel_node *channel;
     struct message_slot* cur_slot;
-    int channel_id, return_val, i, message_length;
+    int return_val, i, message_length;
+    unsigned long channel_id;
 
     // Check if no channel has been set on fd
     if (file->private_data == NULL) {
@@ -68,7 +69,7 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t buffer
 
     cur_slot = slots[iminor(file->f_inode)];
     // Gets relevant channel
-    channel_id = (int)(long)(file->private_data);
+    channel_id = (long)(file->private_data);
     channel = get_channel(cur_slot, channel_id);
 
     // Check if channel does not exist
@@ -102,7 +103,8 @@ static ssize_t device_read(struct file* file, char __user* buffer, size_t buffer
 static ssize_t device_write(struct file* file, const char __user* buffer, size_t message_length, loff_t* offset) {
     struct message_channel_node *channel;
     struct message_slot* cur_slot;
-    int channel_id, return_val, i;
+    int return_val, i;
+    unsigned long channel_id;
 
     // Check if no channel has been set on fd
     if (file->private_data == NULL) {
@@ -116,7 +118,7 @@ static ssize_t device_write(struct file* file, const char __user* buffer, size_t
 
     cur_slot = slots[iminor(file->f_inode)];
     // Gets relevant channel
-    channel_id = (int)(long)(file->private_data);
+    channel_id = (long)(file->private_data);
     channel = get_channel(cur_slot, channel_id);
 
     // Check if channel does not exist
