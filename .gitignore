@@ -1,9 +1,12 @@
 
-*.ko
+*.tmp
 *.cmd
 *.mod
-message_slot.mod.c
 *.o
+message_sender
+message_reader
+*.ko
+message_slot.mod.c
 *.symvers
 *.order
-*.tmp
+tester

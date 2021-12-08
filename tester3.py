@@ -19,7 +19,6 @@ RunResult = namedtuple('RunResult', ['returncode', 'stdout', 'stderr'])
 
 
 def execute(command, exit_on_non_zero=True):
-    print(f"running command: {command}\n")
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if exit_on_non_zero and result.returncode != 0:
         print(f"Error executing command '{command}'! Existing...\n")
